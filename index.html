@@ -1,0 +1,612 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Medical Agentic Multi-Document Research and Q&A Assistant</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome for medical icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        /* Smooth transitions for theme switching */
+        body, div, p, span, h1, h2, h3, h4, input, button {
+            transition: background-color 0.3s ease, border-color 0.3s ease, color 0.3s ease, box-shadow 0.3s ease;
+        }
+        /* Custom scrollbar */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        .dark-mode-scrollbar::-webkit-scrollbar-thumb {
+            background: #27272a;
+            border-radius: 3px;
+        }
+        .light-mode-scrollbar::-webkit-scrollbar-thumb {
+            background: #e4e4e7;
+            border-radius: 3px;
+        }
+    </style>
+</head>
+<body id="app-body" class="bg-zinc-950 text-zinc-100 font-sans min-h-screen p-4 md:p-6 transition-colors duration-300">
+
+    <div class="max-w-7xl mx-auto">
+        <!-- 1. HEADER SECTION -->
+        <header id="header-bar" class="flex flex-col sm:flex-row justify-between items-start sm:items-center p-4 md:p-5 mb-6 rounded-2xl border bg-zinc-900 border-zinc-800 shadow-xl gap-4">
+            <div class="flex items-center gap-4">
+                <div class="w-12 h-12 rounded-xl bg-sky-500/10 border border-sky-500/20 flex items-center justify-content-center text-sky-400 text-2xl flex-shrink-0 justify-center">
+                    <i class="fa-solid fa-stethoscope m-auto"></i>
+                </div>
+                <div>
+                    <div class="flex items-center gap-2">
+                        <h1 id="brand-title" class="text-xl font-extrabold text-zinc-100 tracking-tight">Medical Agentic Multi-Document Research and Q&A Assistant</h1>
+                        <span class="text-[10px] font-bold bg-sky-500/10 text-sky-400 border border-sky-500/20 px-2 py-0.5 rounded">v1.2.0</span>
+                    </div>
+                    <p id="brand-subtitle" class="text-xs text-zinc-400">Local Semantic Index & Synthesis Pipeline</p>
+                </div>
+            </div>
+            
+            <div class="flex flex-wrap items-center gap-3 w-full sm:w-auto justify-between sm:justify-end">
+                <div id="status-badge" class="flex items-center gap-2 text-xs text-zinc-400 pr-4 sm:border-r border-zinc-800">
+                    <span class="w-2.5 h-2.5 bg-emerald-500 rounded-full animate-pulse"></span>
+                    <span>Active LLM Model Connected</span>
+                </div>
+                <!-- Theme Toggle Button -->
+                <button onclick="toggleTheme()" id="theme-btn" class="flex items-center gap-2 px-4 py-2 text-xs font-semibold rounded-xl border border-zinc-800 bg-zinc-900 text-zinc-100 hover:border-sky-500 hover:text-sky-400 shadow-md">
+                    <i id="theme-icon" class="fa-solid fa-sun text-amber-400"></i>
+                    <span id="theme-text">Light Theme</span>
+                </button>
+            </div>
+        </header>
+
+        <!-- 2. MAIN GRID LAYOUT -->
+        <main class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+            
+            <!-- LEFT SIDEBAR COLUMN (4 cols) -->
+            <section class="lg:col-span-4 flex flex-col gap-6">
+                
+                <!-- API Key Card -->
+                <div id="api-card" class="bg-zinc-900 border border-zinc-800 rounded-2xl p-5 shadow-lg">
+                    <h3 class="text-sm font-bold flex items-center gap-2 mb-2 text-zinc-100">
+                        <i class="fa-solid fa-key text-sky-400"></i> API Authentication
+                    </h3>
+                    <p id="api-desc" class="text-xs text-zinc-400 mb-4 leading-relaxed">
+                        Paste your Gemini API Key below to run real-time clinical synthesis.
+                    </p>
+                    <div class="relative">
+                        <input id="api-key-input" type="password" value="AIzaSy_demo_key_encrypted_3a98" class="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-4 py-3 text-xs text-zinc-100 placeholder-zinc-600 focus:outline-none focus:border-sky-500" placeholder="AIzaSy...">
+                        <button onclick="togglePasswordVisibility()" class="absolute right-3 top-3.5 text-zinc-500 hover:text-zinc-300">
+                            <i id="eye-icon" class="fa-solid fa-eye-slash text-xs"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Document Repository Card -->
+                <div id="repo-card" class="bg-zinc-900 border border-zinc-800 rounded-2xl p-5 shadow-lg flex flex-col gap-4">
+                    <div>
+                        <h3 class="text-sm font-bold flex items-center gap-2 mb-1 text-zinc-100">
+                            <i class="fa-solid fa-folder-open text-sky-400"></i> Document Repository
+                        </h3>
+                        <p id="repo-desc" class="text-xs text-zinc-400 leading-relaxed">
+                            Upload clinical standards, patient charts, or trial reports.
+                        </p>
+                    </div>
+
+                    <!-- File Drop Area Mock -->
+                    <div id="drop-zone" class="border-2 border-dashed border-zinc-800 hover:border-sky-500/50 rounded-xl p-6 text-center cursor-pointer transition-colors bg-zinc-950/40">
+                        <i class="fa-solid fa-cloud-arrow-up text-zinc-500 text-2xl mb-2"></i>
+                        <p class="text-xs font-semibold text-zinc-300">Drag & drop clinical files</p>
+                        <p class="text-[10px] text-zinc-500 mt-1">Accepts PDF, TXT, MD, CSV, JSON</p>
+                        <input type="file" id="mock-file-input" class="hidden" multiple onchange="handleMockFileSelect()">
+                    </div>
+
+                    <!-- Direct Paste Section -->
+                    <details id="paste-details" class="group">
+                        <summary class="list-none flex items-center justify-between text-xs text-zinc-400 hover:text-zinc-200 cursor-pointer py-1">
+                            <span class="font-semibold"><i class="fa-solid fa-pen-to-square mr-1"></i> Paste raw text blocks</span>
+                            <i class="fa-solid fa-chevron-down text-[10px] group-open:rotate-180 transition-transform"></i>
+                        </summary>
+                        <div class="pt-3 flex flex-col gap-2">
+                            <input id="paste-title" type="text" placeholder="Protocol Name (e.g., Asthma Guide)" class="w-full bg-zinc-950 border border-zinc-800 rounded-lg p-2 text-xs text-zinc-100 focus:outline-none focus:border-sky-500">
+                            <textarea id="paste-text" placeholder="Paste medical guidance text here..." rows="3" class="w-full bg-zinc-950 border border-zinc-800 rounded-lg p-2 text-xs text-zinc-100 focus:outline-none focus:border-sky-500 resize-none"></textarea>
+                            <button onclick="addPastedDoc()" class="bg-zinc-850 hover:bg-zinc-800 text-zinc-100 border border-zinc-800 rounded-lg py-1.5 text-xs font-semibold">Index Block</button>
+                        </div>
+                    </details>
+                </div>
+
+                <!-- Document Corpus Card -->
+                <div id="corpus-card" class="bg-zinc-900 border border-zinc-800 rounded-2xl p-5 shadow-lg flex flex-col gap-3">
+                    <div class="flex justify-between items-center">
+                        <h3 class="text-sm font-bold text-zinc-100">📚 Document Corpus</h3>
+                        <span id="chunk-counter" class="text-[10px] font-bold bg-sky-500/10 text-sky-400 border border-sky-500/20 px-2 py-0.5 rounded-full">10 Chunks</span>
+                    </div>
+
+                    <div id="corpus-list" class="flex flex-col gap-2.5 max-h-56 overflow-y-auto pr-1">
+                        <!-- Dynamic lists generated via JavaScript -->
+                    </div>
+
+                    <!-- Quick Preset Loader -->
+                    <div class="mt-2 pt-3 border-t border-zinc-800/80">
+                        <p id="preset-lbl" class="text-[10px] font-bold text-zinc-500 uppercase tracking-wider mb-2">Load Clinical Presets</p>
+                        <div class="grid grid-cols-2 gap-2">
+                            <button onclick="loadPreset('hypertension')" class="flex items-center justify-center gap-1.5 py-2 px-3 text-xs rounded-xl border border-zinc-800 bg-zinc-950 text-zinc-300 hover:border-rose-500 hover:text-rose-400 hover:bg-rose-500/5 transition-all">
+                                <i class="fa-solid fa-heart text-rose-500 text-[10px]"></i> Cardiology
+                            </button>
+                            <button onclick="loadPreset('diabetes')" class="flex items-center justify-center gap-1.5 py-2 px-3 text-xs rounded-xl border border-zinc-800 bg-zinc-950 text-zinc-300 hover:border-amber-500 hover:text-amber-400 hover:bg-amber-500/5 transition-all">
+                                <i class="fa-solid fa-droplet text-amber-500 text-[10px]"></i> Endocrinology
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+            </section>
+
+            <!-- RIGHT CHAT & PIPELINE COLUMN (8 cols) -->
+            <section class="lg:col-span-8 flex flex-col gap-6">
+
+                <!-- Clinical Query Chat Session -->
+                <div id="chat-card" class="bg-zinc-900 border border-zinc-800 rounded-2xl p-5 shadow-lg flex flex-col h-[520px]">
+                    <div class="flex justify-between items-center pb-4 mb-4 border-b border-zinc-800/80">
+                        <div>
+                            <h3 class="text-sm font-bold text-zinc-100 flex items-center gap-2">
+                                <i class="fa-solid fa-comments text-sky-400"></i> Clinical Query Session
+                            </h3>
+                            <p id="chat-sub" class="text-[10px] text-zinc-400">Restricted evidence answers based only on configured knowledge files</p>
+                        </div>
+                        <button onclick="resetChat()" class="text-xs text-zinc-400 hover:text-sky-400 flex items-center gap-1 px-2.5 py-1.5 rounded-lg border border-zinc-800 bg-zinc-950/50 hover:bg-zinc-800/50">
+                            <i class="fa-solid fa-rotate-right text-[10px]"></i> Reset Session
+                        </button>
+                    </div>
+
+                    <!-- Scrollable Chat Area -->
+                    <div id="chat-history" class="flex-1 overflow-y-auto space-y-4 pr-1 mb-4 dark-mode-scrollbar">
+                        <!-- Messages dynamically added here -->
+                    </div>
+
+                    <!-- Custom Chat Inputs -->
+                    <div class="flex gap-2">
+                        <input id="chat-input" type="text" placeholder="Query: e.g. What is the glycemic target in diabetes?" class="flex-1 bg-zinc-950 border border-zinc-800 rounded-xl px-4 py-3 text-xs text-zinc-100 focus:outline-none focus:border-sky-500" onkeydown="if(event.key === 'Enter') sendQuery()">
+                        <button onclick="sendQuery()" class="px-5 bg-sky-500 hover:bg-sky-600 text-white font-semibold rounded-xl text-xs flex items-center justify-center gap-1.5 shadow-md">
+                            <span>Analyze</span> <i class="fa-solid fa-paper-plane text-[10px]"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- RAG Pipeline Discovery Inspector -->
+                <div id="pipeline-card" class="bg-zinc-900 border border-zinc-800 rounded-2xl p-5 shadow-lg">
+                    <div class="flex justify-between items-center pb-3 mb-4 border-b border-zinc-800/80">
+                        <div class="flex items-center gap-2">
+                            <i class="fa-solid fa-magnifying-glass-chart text-sky-400"></i>
+                            <h4 class="text-xs font-bold text-zinc-100">RAG Semantic Pipeline Inspector</h4>
+                        </div>
+                        <span id="insp-badge" class="text-[9px] text-zinc-500 font-mono">Last Query Trace</span>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-12 gap-6">
+                        <!-- Step 1: NLP Extractions -->
+                        <div class="md:col-span-4 flex flex-col gap-2">
+                            <span class="text-[10px] font-bold text-sky-400 uppercase tracking-wider">Step 1: Term Extraction</span>
+                            <p class="text-[11px] font-bold text-zinc-300">Normalized Query Tokens</p>
+                            <div id="token-container" class="flex flex-wrap gap-1.5 mt-1">
+                                <!-- Tokens dynamic -->
+                            </div>
+                        </div>
+
+                        <!-- Step 2: Score Alignment -->
+                        <div class="md:col-span-8 flex flex-col gap-2">
+                            <span class="text-[10px] font-bold text-sky-400 uppercase tracking-wider">Step 2: Vector Similarity Alignment</span>
+                            <p class="text-[11px] font-bold text-zinc-300">Top Context Snippets Injected to LLM Context Window</p>
+                            <div id="snippet-container" class="flex flex-col gap-2 mt-1">
+                                <!-- Snippets dynamic -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            </section>
+
+        </main>
+    </div>
+
+    <!-- UI/UX Interactive Application Script logic -->
+    <script>
+        // Preset documents content pool
+        const PRESET_DOCUMENTS = {
+            hypertension: {
+                title: "AHA Hypertension Management Protocol",
+                chunks: [
+                    "GUIDELINE 1: Definition of Hypertension. High blood pressure is defined as a systolic blood pressure (SBP) of 130 mmHg or higher, or a diastolic blood pressure (DBP) of 80 mmHg or higher. Stage 1 hypertension is 130-139 / 80-89 mmHg.",
+                    "GUIDELINE 2: Therapeutic Targets. For patients with confirmed hypertension and known cardiovascular disease, the recommended blood pressure target is less than 130/80 mmHg.",
+                    "GUIDELINE 3: Pharmacological Interventions. First-line pharmacological agents include thiazide diuretics, calcium channel blockers (CCBs), and ACE inhibitors."
+                ]
+            },
+            diabetes: {
+                title: "ADA Type 2 Diabetes Therapy Standard",
+                chunks: [
+                    "SECTION 1: Diagnostic Benchmarks. Diabetes is diagnosed with an HbA1c of 6.5% or higher, or fasting plasma glucose of 126 mg/dL or higher.",
+                    "SECTION 2: Glycemic Target. A reasonable HbA1c target for most nonpregnant adults is less than 7.0% (53 mmol/mol).",
+                    "SECTION 3: Initial Therapy. Metformin is the preferred initial pharmacotherapy for the treatment of type 2 diabetes."
+                ]
+            }
+        };
+
+        // Active State Pools
+        let activeDocuments = [
+            { title: "AHA Hypertension Management Protocol", chunksCount: 3, chunks: PRESET_DOCUMENTS.hypertension.chunks },
+            { title: "ADA Type 2 Diabetes Therapy Standard", chunksCount: 3, chunks: PRESET_DOCUMENTS.diabetes.chunks }
+        ];
+
+        let chatHistory = [
+            {
+                role: "assistant",
+                content: "Welcome to the **Medical RAG Studio**. I can answer clinical and analytical questions strictly using information from your uploaded files.<br><br>**Try entering queries such as:**<br>• <i>'What is Stage 1 hypertension?'</i><br>• <i>'What is metformin used for?'</i>",
+                timestamp: "Just Now"
+            }
+        ];
+
+        let lastQueryTerms = ["hypertension", "systolic", "diabetes"];
+        let lastRetrievedChunks = [
+            { docTitle: "AHA Hypertension Management Protocol", text: "GUIDELINE 1: Definition of Hypertension. Stage 1 hypertension is 130-139 / 80-89 mmHg.", score: "0.94" },
+            { docTitle: "ADA Type 2 Diabetes Therapy Standard", text: "SECTION 2: Glycemic Target. A reasonable HbA1c target for most nonpregnant adults is less than 7.0%.", score: "0.45" }
+        ];
+
+        let currentTheme = "black"; // Start with High-contrast black design theme
+
+        // Toggle Theme Logic (Changes visual colors dynamically)
+        function toggleTheme() {
+            const body = document.getElementById("app-body");
+            const header = document.getElementById("header-bar");
+            const brandTitle = document.getElementById("brand-title");
+            const brandSubtitle = document.getElementById("brand-subtitle");
+            const statusBadge = document.getElementById("status-badge");
+            const themeBtn = document.getElementById("theme-btn");
+            const themeIcon = document.getElementById("theme-icon");
+            const themeText = document.getElementById("theme-text");
+            const apiCard = document.getElementById("api-card");
+            const apiDesc = document.getElementById("api-desc");
+            const apiKeyInput = document.getElementById("api-key-input");
+            const repoCard = document.getElementById("repo-card");
+            const repoDesc = document.getElementById("repo-desc");
+            const dropZone = document.getElementById("drop-zone");
+            const corpusCard = document.getElementById("corpus-card");
+            const chatCard = document.getElementById("chat-card");
+            const chatSub = document.getElementById("chat-sub");
+            const pipelineCard = document.getElementById("pipeline-card");
+            const chatInput = document.getElementById("chat-input");
+            const inspBadge = document.getElementById("insp-badge");
+            const chatHistoryEl = document.getElementById("chat-history");
+            const presetLbl = document.getElementById("preset-lbl");
+
+            if (currentTheme === "black") {
+                // Change to White/Light Mode
+                currentTheme = "white";
+                body.className = "bg-zinc-50 text-zinc-900 font-sans min-h-screen p-4 md:p-6 transition-colors duration-300";
+                header.className = "flex flex-col sm:flex-row justify-between items-start sm:items-center p-4 md:p-5 mb-6 rounded-2xl border bg-white border-zinc-200 shadow-md gap-4";
+                brandTitle.className = "text-xl font-extrabold text-zinc-900 tracking-tight";
+                brandSubtitle.className = "text-xs text-zinc-500";
+                statusBadge.className = "flex items-center gap-2 text-xs text-zinc-500 pr-4 sm:border-r border-zinc-200";
+                themeBtn.className = "flex items-center gap-2 px-4 py-2 text-xs font-semibold rounded-xl border border-zinc-200 bg-white text-zinc-800 hover:border-sky-500 hover:text-sky-600 shadow-sm";
+                themeIcon.className = "fa-solid fa-moon text-indigo-500";
+                themeText.innerText = "Dark Theme";
+                
+                // Sidebar
+                apiCard.className = "bg-white border border-zinc-200 rounded-2xl p-5 shadow-sm";
+                apiDesc.className = "text-xs text-zinc-500 mb-4 leading-relaxed";
+                apiKeyInput.className = "w-full bg-zinc-50 border border-zinc-200 rounded-xl px-4 py-3 text-xs text-zinc-900 placeholder-zinc-400 focus:outline-none focus:border-sky-500";
+                
+                repoCard.className = "bg-white border border-zinc-200 rounded-2xl p-5 shadow-sm flex flex-col gap-4";
+                repoDesc.className = "text-xs text-zinc-500 leading-relaxed";
+                dropZone.className = "border-2 border-dashed border-zinc-200 hover:border-sky-500/50 rounded-xl p-6 text-center cursor-pointer transition-colors bg-zinc-50";
+                
+                corpusCard.className = "bg-white border border-zinc-200 rounded-2xl p-5 shadow-sm flex flex-col gap-3";
+                presetLbl.className = "text-[10px] font-bold text-zinc-400 uppercase tracking-wider mb-2";
+
+                // Chat Column
+                chatCard.className = "bg-white border border-zinc-200 rounded-2xl p-5 shadow-sm flex flex-col h-[520px]";
+                chatSub.className = "text-[10px] text-zinc-500";
+                chatInput.className = "flex-1 bg-zinc-50 border border-zinc-200 rounded-xl px-4 py-3 text-xs text-zinc-900 focus:outline-none focus:border-sky-500";
+                
+                pipelineCard.className = "bg-white border border-zinc-200 rounded-2xl p-5 shadow-sm";
+                inspBadge.className = "text-[9px] text-zinc-400 font-mono";
+
+                chatHistoryEl.className = "flex-1 overflow-y-auto space-y-4 pr-1 mb-4 light-mode-scrollbar";
+            } else {
+                // Change back to Black/Dark Mode
+                currentTheme = "black";
+                body.className = "bg-zinc-950 text-zinc-100 font-sans min-h-screen p-4 md:p-6 transition-colors duration-300";
+                header.className = "flex flex-col sm:flex-row justify-between items-start sm:items-center p-4 md:p-5 mb-6 rounded-2xl border bg-zinc-900 border-zinc-800 shadow-xl gap-4";
+                brandTitle.className = "text-xl font-extrabold text-zinc-100 tracking-tight";
+                brandSubtitle.className = "text-xs text-zinc-400";
+                statusBadge.className = "flex items-center gap-2 text-xs text-zinc-400 pr-4 sm:border-r border-zinc-800";
+                themeBtn.className = "flex items-center gap-2 px-4 py-2 text-xs font-semibold rounded-xl border border-zinc-800 bg-zinc-900 text-zinc-100 hover:border-sky-500 hover:text-sky-400 shadow-md";
+                themeIcon.className = "fa-solid fa-sun text-amber-400";
+                themeText.innerText = "Light Theme";
+
+                // Sidebar
+                apiCard.className = "bg-zinc-900 border border-zinc-800 rounded-2xl p-5 shadow-lg";
+                apiDesc.className = "text-xs text-zinc-400 mb-4 leading-relaxed";
+                apiKeyInput.className = "w-full bg-zinc-950 border border-zinc-800 rounded-xl px-4 py-3 text-xs text-zinc-100 placeholder-zinc-600 focus:outline-none focus:border-sky-500";
+                
+                repoCard.className = "bg-zinc-900 border border-zinc-800 rounded-2xl p-5 shadow-lg flex flex-col gap-4";
+                repoDesc.className = "text-xs text-zinc-400 leading-relaxed";
+                dropZone.className = "border-2 border-dashed border-zinc-800 hover:border-sky-500/50 rounded-xl p-6 text-center cursor-pointer transition-colors bg-zinc-950/40";
+                
+                corpusCard.className = "bg-zinc-900 border border-zinc-800 rounded-2xl p-5 shadow-lg flex flex-col gap-3";
+                presetLbl.className = "text-[10px] font-bold text-zinc-500 uppercase tracking-wider mb-2";
+
+                // Chat Column
+                chatCard.className = "bg-zinc-900 border border-zinc-800 rounded-2xl p-5 shadow-lg flex flex-col h-[520px]";
+                chatSub.className = "text-[10px] text-zinc-400";
+                chatInput.className = "flex-1 bg-zinc-950 border border-zinc-800 rounded-xl px-4 py-3 text-xs text-zinc-100 focus:outline-none focus:border-sky-500";
+                
+                pipelineCard.className = "bg-zinc-900 border border-zinc-800 rounded-2xl p-5 shadow-lg";
+                inspBadge.className = "text-[9px] text-zinc-500 font-mono";
+
+                chatHistoryEl.className = "flex-1 overflow-y-auto space-y-4 pr-1 mb-4 dark-mode-scrollbar";
+            }
+            renderCorpus();
+            renderChat();
+            renderPipeline();
+        }
+
+        // Mask/Unmask API Key Password Mock
+        function togglePasswordVisibility() {
+            const input = document.getElementById("api-key-input");
+            const icon = document.getElementById("eye-icon");
+            if (input.type === "password") {
+                input.type = "text";
+                icon.className = "fa-solid fa-eye text-xs text-sky-400";
+            } else {
+                input.type = "password";
+                icon.className = "fa-solid fa-eye-slash text-xs text-zinc-500";
+            }
+        }
+
+        // Render Document list UI elements
+        function renderCorpus() {
+            const listContainer = document.getElementById("corpus-list");
+            const counter = document.getElementById("chunk-counter");
+            listContainer.innerHTML = "";
+
+            let totalChunks = 0;
+            activeDocuments.forEach((doc, idx) => {
+                totalChunks += doc.chunksCount;
+                
+                const card = document.createElement("div");
+                card.className = `flex justify-between items-center p-2.5 rounded-xl border ${currentTheme === 'black' ? 'bg-zinc-950/60 border-zinc-800/80 hover:bg-zinc-950' : 'bg-zinc-50 border-zinc-100 hover:bg-zinc-100/50'}`;
+                
+                card.innerHTML = `
+                    <div class="flex items-center gap-2.5 min-w-0">
+                        <span class="text-xs text-sky-400 flex-shrink-0"><i class="fa-solid fa-file-medical"></i></span>
+                        <div class="min-w-0">
+                            <p class="text-[11px] font-semibold truncate ${currentTheme === 'black' ? 'text-zinc-200' : 'text-zinc-800'}">${doc.title}</p>
+                            <p class="text-[9px] ${currentTheme === 'black' ? 'text-zinc-500' : 'text-zinc-400'}">${doc.chunksCount} semantic nodes</p>
+                        </div>
+                    </div>
+                    <button onclick="deleteDoc(${idx})" class="w-6 h-6 rounded-lg flex items-center justify-center text-zinc-500 hover:text-rose-500 hover:bg-rose-500/10">
+                        <i class="fa-solid fa-trash-can text-[10px]"></i>
+                    </button>
+                `;
+                listContainer.appendChild(card);
+            });
+
+            counter.innerText = `${totalChunks} Chunks`;
+        }
+
+        // Remove a document
+        function deleteDoc(index) {
+            activeDocuments.splice(index, 1);
+            renderCorpus();
+        }
+
+        // Add a preset document to index
+        function loadPreset(type) {
+            const doc = PRESET_DOCUMENTS[type];
+            if (activeDocuments.some(d => d.title === doc.title)) {
+                return; // Already loaded
+            }
+            activeDocuments.push({
+                title: doc.title,
+                chunksCount: doc.chunks.length,
+                chunks: doc.chunks
+            });
+            renderCorpus();
+        }
+
+        // Paste manual raw clinical blocks
+        function addPastedDoc() {
+            const titleInput = document.getElementById("paste-title");
+            const textInput = document.getElementById("paste-text");
+            
+            if (!textInput.value.trim()) return;
+
+            const finalTitle = titleInput.value.trim() || `Pasted Block - ${new Date().toLocaleTimeString()}`;
+            activeDocuments.push({
+                title: finalTitle,
+                chunksCount: 1,
+                chunks: [textInput.value.trim()]
+            });
+
+            titleInput.value = "";
+            textInput.value = "";
+            document.getElementById("paste-details").removeAttribute("open");
+            renderCorpus();
+        }
+
+        // Add mock document via click trigger
+        function handleMockFileSelect() {
+            activeDocuments.push({
+                title: "Inpatient_Asthma_Discharge_Standard_2026.txt",
+                chunksCount: 2,
+                chunks: [
+                    "ASTHMA RULE 1: Administer short-acting beta2-agonists (SABA) via MDI with spacer for prompt treatment of mild-to-moderate exacerbations.",
+                    "ASTHMA RULE 2: Prescribe oral systemic corticosteroids for 5-7 days after discharge to prevent recurrence."
+                ]
+            });
+            renderCorpus();
+        }
+
+        // Render interactive chat
+        function renderChat() {
+            const container = document.getElementById("chat-history");
+            container.innerHTML = "";
+
+            chatHistory.forEach(msg => {
+                const bubble = document.createElement("div");
+                const isUser = msg.role === "user";
+                
+                bubble.className = `flex gap-3 max-w-[85%] ${isUser ? 'ml-auto flex-row-reverse' : ''}`;
+                
+                bubble.innerHTML = `
+                    <div class="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 text-xs shadow-md ${isUser ? 'bg-sky-500 text-white' : (currentTheme === 'black' ? 'bg-zinc-800 text-zinc-200' : 'bg-zinc-100 text-zinc-800')}">
+                        <i class="fa-solid ${isUser ? 'fa-user' : 'fa-user-doctor'}"></i>
+                    </div>
+                    <div>
+                        <div class="p-3 rounded-2xl text-xs leading-relaxed shadow-sm ${
+                            isUser 
+                            ? 'bg-sky-500 text-white rounded-tr-none' 
+                            : (currentTheme === 'black' ? 'bg-zinc-950 border border-zinc-800 rounded-tl-none text-zinc-300' : 'bg-zinc-50 border border-zinc-200 rounded-tl-none text-zinc-800')
+                        }">
+                            ${msg.content}
+                        </div>
+                        <span class="text-[9px] text-zinc-500 mt-1 block px-1 ${isUser ? 'text-right' : ''}">${msg.timestamp}</span>
+                    </div>
+                `;
+                container.appendChild(bubble);
+            });
+
+            // Scroll to bottom
+            container.scrollTop = container.scrollHeight;
+        }
+
+        // Send query & run simulation pipeline
+        function sendQuery() {
+            const input = document.getElementById("chat-input");
+            const queryText = input.value.trim();
+            if (!queryText) return;
+
+            // Add user message
+            chatHistory.push({
+                role: "user",
+                content: queryText,
+                timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+            });
+            input.value = "";
+            renderChat();
+
+            // Setup mock processing response
+            setTimeout(() => {
+                let aiResponse = "";
+                
+                // Match key questions to give high accuracy answers
+                const cleanQuery = queryText.toLowerCase();
+                
+                if (cleanQuery.includes("hypertension") || cleanQuery.includes("bp") || cleanQuery.includes("blood pressure")) {
+                    lastQueryTerms = ["hypertension", "systolic", "diastolic", "target"];
+                    lastRetrievedChunks = [
+                        { docTitle: "AHA Hypertension Management Protocol", text: "GUIDELINE 1: Definition of Hypertension. High blood pressure is defined as a systolic blood pressure (SBP) of 130 mmHg or higher. Stage 1 hypertension is 130-139 / 80-89 mmHg.", score: "0.98" },
+                        { docTitle: "AHA Hypertension Management Protocol", text: "GUIDELINE 2: Therapeutic Targets. For patients with confirmed hypertension, the recommended target is less than 130/80 mmHg.", score: "0.85" }
+                    ];
+                    aiResponse = "Based on the <b>AHA Hypertension Management Protocol</b>:<br><br>1. **Definition of Hypertension**: Stage 1 hypertension is defined as a systolic range of **130-139 mmHg** or a diastolic range of **80-89 mmHg** [AHA Hypertension Management Protocol, Node 0].<br>2. **Therapeutic targets**: High risk patients should maintain a target blood pressure of **less than 130/80 mmHg** [AHA Hypertension Management Protocol, Node 1].";
+                } 
+                else if (cleanQuery.includes("diabetes") || cleanQuery.includes("glycemic") || cleanQuery.includes("metformin")) {
+                    lastQueryTerms = ["diabetes", "glycemic", "target", "metformin"];
+                    lastRetrievedChunks = [
+                        { docTitle: "ADA Type 2 Diabetes Therapy Standard", text: "SECTION 3: Initial Therapy. Metformin is the preferred initial pharmacotherapy for the treatment of type 2 diabetes.", score: "0.95" },
+                        { docTitle: "ADA Type 2 Diabetes Therapy Standard", text: "SECTION 2: Glycemic Target. A reasonable HbA1c target for most nonpregnant adults is less than 7.0%.", score: "0.78" }
+                    ];
+                    aiResponse = "Based on the <b>ADA Type 2 Diabetes Therapy Standard</b>:<br><br>• **Initial Therapy Choice**: Metformin is highlighted as the preferred initial pharmacotherapy choice for Type 2 Diabetes treatment [ADA Type 2 Diabetes Therapy Standard, Node 2].<br>• **HbA1c Target**: Nonpregnant adult patients should target an HbA1c of **less than 7.0%** [ADA Type 2 Diabetes Therapy Standard, Node 1].";
+                }
+                else {
+                    lastQueryTerms = queryText.toLowerCase().replace(/[^\w\s]/g, "").split(" ").filter(w => w.length > 3).slice(0, 4);
+                    lastRetrievedChunks = activeDocuments.length > 0 
+                        ? [{ docTitle: activeDocuments[0].title, text: activeDocuments[0].chunks[0], score: "0.62" }] 
+                        : [];
+                    aiResponse = "I have scanned the corpus documents for '" + queryText + "'. Here is the most matched detail:<br><br>" + (lastRetrievedChunks[0] ? `"${lastRetrievedChunks[0].text}"` : "No direct matches found. Please load clinical preset guidelines on the left sidebar to start exploring.") + " [Source Node Citation Indicated]";
+                }
+
+                chatHistory.push({
+                    role: "assistant",
+                    content: aiResponse,
+                    timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+                });
+
+                renderChat();
+                renderPipeline();
+            }, 850);
+        }
+
+        // Render RAG pipeline statistics
+        function renderPipeline() {
+            // Render Token Badges
+            const tokenContainer = document.getElementById("token-container");
+            tokenContainer.innerHTML = "";
+            lastQueryTerms.forEach(term => {
+                const badge = document.createElement("span");
+                badge.className = `text-[10px] font-semibold font-mono px-2 py-1 rounded-md border ${
+                    currentTheme === 'black' ? 'bg-zinc-950 border-zinc-800 text-sky-400' : 'bg-zinc-100 border-zinc-200 text-sky-600'
+                }`;
+                badge.innerText = term;
+                tokenContainer.appendChild(badge);
+            });
+
+            // Render Chunks Alignments
+            const snippetContainer = document.getElementById("snippet-container");
+            snippetContainer.innerHTML = "";
+
+            if (lastRetrievedChunks.length === 0) {
+                snippetContainer.innerHTML = `<p class="text-[11px] text-zinc-500 italic">No search traces available. Input a query to review alignment calculations.</p>`;
+                return;
+            }
+
+            lastRetrievedChunks.forEach(item => {
+                const card = document.createElement("div");
+                card.className = `p-3 rounded-xl border ${
+                    currentTheme === 'black' ? 'bg-zinc-950/60 border-zinc-800/80' : 'bg-zinc-50 border-zinc-200'
+                }`;
+                card.innerHTML = `
+                    <div class="flex justify-between items-center mb-1">
+                        <span class="text-[9px] font-bold text-sky-400 truncate max-w-[180px]"><i class="fa-solid fa-file-medical mr-1"></i> ${item.docTitle}</span>
+                        <span class="text-[9px] font-bold bg-sky-500/10 text-sky-400 border border-sky-500/20 px-1.5 py-0.5 rounded">Score: ${item.score}</span>
+                    </div>
+                    <p class="text-[10px] leading-relaxed ${currentTheme === 'black' ? 'text-zinc-400' : 'text-zinc-600'} line-clamp-2">${item.text}</p>
+                `;
+                snippetContainer.appendChild(card);
+            });
+        }
+
+        // Clear Chat logs
+        function resetChat() {
+            chatHistory = [chatHistory[0]];
+            lastQueryTerms = [];
+            lastRetrievedChunks = [];
+            renderChat();
+            renderPipeline();
+        }
+
+        // Drag and drop mocks
+        const dropZone = document.getElementById("drop-zone");
+        dropZone.addEventListener("click", () => document.getElementById("mock-file-input").click());
+        dropZone.addEventListener("dragover", (e) => {
+            e.preventDefault();
+            dropZone.classList.add("border-sky-500", "bg-sky-500/5");
+        });
+        dropZone.addEventListener("dragleave", () => {
+            dropZone.classList.remove("border-sky-500", "bg-sky-500/5");
+        });
+        dropZone.addEventListener("drop", (e) => {
+            e.preventDefault();
+            dropZone.classList.remove("border-sky-500", "bg-sky-500/5");
+            handleMockFileSelect();
+        });
+
+        // Initialize UI Elements
+        renderCorpus();
+        renderChat();
+        renderPipeline();
+    </script>
+</body>
+</html>
